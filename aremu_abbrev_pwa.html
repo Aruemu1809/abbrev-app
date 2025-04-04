@@ -1,0 +1,183 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="略記帳">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>あるえむの略記帳</title>
+  <style>
+    body {
+      font-family: "Yu Gothic", sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #007ACC;
+      border-bottom: 2px solid #007ACC;
+      padding-bottom: 8px;
+    }
+    input[type="text"], button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    input[type="text"] {
+      width: calc(100% - 22px);
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007ACC;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: #fff;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    th {
+      background-color: #e0f0ff;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .edit-btn, .delete-btn {
+      background-color: #ff9900;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .delete-btn {
+      background-color: #ff4c4c;
+    }
+    .note {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>あるえむの略記帳</h1>
+
+  <input type="text" id="searchBox" placeholder="略記や意味で検索...">
+
+  <h3>新しい略記を追加：</h3>
+  <input type="text" id="newMeaning" placeholder="意味">
+  <input type="text" id="newAbbrev" placeholder="略記">
+  <input type="text" id="newNote" placeholder="メモ">
+  <button onclick="addEntry()">追加</button>
+
+  <table id="abbrevTable">
+    <thead>
+      <tr>
+        <th>意味</th>
+        <th>略記</th>
+        <th>メモ</th>
+        <th>アクション</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <p class="note">※iOSでホームに追加するとアプリみたいに使えるよ！</p>
+
+  <script>
+    const tableBody = document.querySelector("#abbrevTable tbody");
+    const storageKey = "aremu_abbrev_list";
+
+    function addEntry() {
+      const meaning = document.getElementById("newMeaning").value.trim();
+      const abbrev = document.getElementById("newAbbrev").value.trim();
+      const note = document.getElementById("newNote").value.trim();
+      if (!meaning || !abbrev) return;
+
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${meaning}</td><td>${abbrev}</td><td>${note}</td>
+                        <td><button class="edit-btn" onclick="editEntry(this)">編集</button>
+                            <button class="delete-btn" onclick="deleteEntry(this)">削除</button></td>`;
+      tableBody.appendChild(row);
+
+      saveData();
+      document.getElementById("newMeaning").value = "";
+      document.getElementById("newAbbrev").value = "";
+      document.getElementById("newNote").value = "";
+    }
+
+    function saveData() {
+      const data = [];
+      document.querySelectorAll("#abbrevTable tbody tr").forEach(row => {
+        const cells = row.querySelectorAll("td");
+        data.push({
+          meaning: cells[0].innerText,
+          abbrev: cells[1].innerText,
+          note: cells[2].innerText
+        });
+      });
+      localStorage.setItem(storageKey, JSON.stringify(data));
+    }
+
+    function loadData() {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
+      saved.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${item.meaning}</td><td>${item.abbrev}</td><td>${item.note}</td>
+                          <td><button class="edit-btn" onclick="editEntry(this)">編集</button>
+                              <button class="delete-btn" onclick="deleteEntry(this)">削除</button></td>`;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function editEntry(button) {
+      const row = button.closest("tr");
+      const cells = row.querySelectorAll("td");
+      document.getElementById("newMeaning").value = cells[0].innerText;
+      document.getElementById("newAbbrev").value = cells[1].innerText;
+      document.getElementById("newNote").value = cells[2].innerText;
+      row.remove();
+      saveData();
+    }
+
+    function deleteEntry(button) {
+      button.closest("tr").remove();
+      saveData();
+    }
+
+    document.getElementById("searchBox").addEventListener("input", function () {
+      const filter = this.value.toLowerCase();
+      document.querySelectorAll("#abbrevTable tbody tr").forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+      });
+    });
+
+    loadData();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+</body>
+</html>
